@@ -17,12 +17,26 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
+function parseArrayField(field) {
+  if (Array.isArray(field)) return field;
+  if (typeof field === 'string') {
+    try {
+      return JSON.parse(field);
+    } catch {
+      return field.split(',').map((item) => item.trim()).filter(Boolean);
+    }
+  }
+  return [];
+}
+
 router.get('/', async (req, res, next) => {
   try {
-    const { q, type, language, region, tag } = req.query;
-    const filters = [];
+    const { q, type, language, region, tag, status = 'published' } = req.query;
+    const filters = ['status = $1'];
+    const resolvedStatus = ['published', 'review', 'draft'].includes(status) ? status : 'published';
     const values = [];
-    let idx = 1;
+    let idx = 2;
+    values.push(resolvedStatus);
 
     if (q) {
       filters.push(`(title ILIKE $${idx} OR content ILIKE $${idx})`);
@@ -69,15 +83,21 @@ router.get('/:id', async (req, res, next) => {
   }
 });
 
-router.post('/', authenticate, authorize(['Admin', 'SME Support Staff', 'Manager']), upload.single('file'), async (req, res, next) => {
+router.post('/', authenticate, authorize(['admin', 'manager', 'staff']), upload.single('file'), async (req, res, next) => {
   try {
+    if (req.user.role !== 'staff') {
+      return res.status(403).json({ error: 'Only staff can submit new knowledge items' });
+    }
+
     const { title, content, type, tags, language, region, status = 'draft' } = req.body;
     const filePath = req.file ? req.file.path : null;
+    const parsedTags = parseArrayField(tags);
+    const submissionStatus = 'review';
     const result = await db.query(
       `INSERT INTO knowledge_items (title, content, type, tags, language, region, status, created_by, file_path)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING *`,
-      [title, content, type, tags, language, region, status, req.user.id, filePath]
+      [title, content, type, parsedTags, language, region, submissionStatus, req.user.id, filePath]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -85,14 +105,38 @@ router.post('/', authenticate, authorize(['Admin', 'SME Support Staff', 'Manager
   }
 });
 
-router.put('/:id', authenticate, authorize(['Admin', 'SME Support Staff', 'Manager']), async (req, res, next) => {
+router.put('/:id', authenticate, authorize(['admin', 'manager', 'staff']), async (req, res, next) => {
   try {
     const { title, content, type, tags, language, region, status } = req.body;
+    const parsedTags = parseArrayField(tags);
     const result = await db.query(
       `UPDATE knowledge_items SET title = $1, content = $2, type = $3, tags = $4, language = $5, region = $6, status = $7, updated_at = now()
        WHERE id = $8 RETURNING *`,
-      [title, content, type, tags, language, region, status, req.params.id]
+      [title, content, type, parsedTags, language, region, status, req.params.id]
     );
+    if (!result.rows[0]) return res.status(404).json({ error: 'Not found' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.put('/:id/review', authenticate, authorize(['manager']), async (req, res, next) => {
+  try {
+    const { action } = req.body;
+    if (!['approve', 'deny'].includes(action)) {
+      return res.status(400).json({ error: 'Action must be approve or deny' });
+    }
+
+    const nextStatus = action === 'approve' ? 'published' : 'draft';
+    const result = await db.query(
+      `UPDATE knowledge_items
+       SET status = $1, updated_at = now()
+       WHERE id = $2
+       RETURNING *`,
+      [nextStatus, req.params.id]
+    );
+
     if (!result.rows[0]) return res.status(404).json({ error: 'Not found' });
     res.json(result.rows[0]);
   } catch (err) {

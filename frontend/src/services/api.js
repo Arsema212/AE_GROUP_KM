@@ -2,37 +2,22 @@ import axios from 'axios';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:4000/api';
 
+/** Origin for static assets (e.g. /uploads) */
+export function getApiOrigin() {
+  return API_BASE.replace(/\/api\/?$/, '') || 'http://localhost:4000';
+}
+
 const api = axios.create({
   baseURL: API_BASE,
   headers: { 'Content-Type': 'application/json' },
 });
 
-export async function fetchKnowledge({ q, type, language, region, tag }) {
-  const params = { q, type, language, region, tag };
-  const response = await api.get('/knowledge', { params });
-  return response.data;
-}
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('kms_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
-export async function createKnowledge(payload, token) {
-  const response = await api.post('/knowledge', payload, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return response.data;
-}
-
-export async function fetchLessons() {
-  const response = await api.get('/lessons');
-  return response.data;
-}
-
-export async function submitLesson(payload, token) {
-  const response = await api.post('/lessons', payload, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return response.data;
-}
-
-export async function fetchExperts(params = {}) {
-  const response = await api.get('/users/experts', { params });
-  return response.data;
-}
+export default api;

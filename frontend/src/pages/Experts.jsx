@@ -1,22 +1,58 @@
-function Experts({ experts }) {
+import { useEffect, useState } from 'react';
+import { fetchExperts } from '../services/knowledge';
+
+function Experts() {
+  const [experts, setExperts] = useState([]);
+  const [status, setStatus] = useState('loading');
+
+  useEffect(() => {
+    async function load() {
+      setStatus('loading');
+      const data = await fetchExperts();
+      setExperts(data || []);
+      setStatus('ready');
+    }
+    load();
+  }, []);
+
   return (
-    <section>
-      <div className="mb-6">
-        <h2 className="text-2xl font-semibold">Expert Profiles</h2>
-        <p className="text-slate-600">Search experts by domain and regional knowledge.</p>
-      </div>
-      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-        {experts.length ? experts.map((expert) => (
-          <div key={expert.id} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-lg transition-shadow">
-            <div className="text-sm text-slate-500">{expert.role}</div>
-            <h3 className="mt-2 text-xl font-semibold">{expert.name}</h3>
-            <p className="mt-3 text-slate-600">Expertise: {expert.expertise.join(', ') || 'General support'}</p>
-            <p className="mt-2 text-slate-500 text-sm">Region: {expert.region || 'National'}</p>
-          </div>
-        )) : (
-          <div className="rounded-3xl bg-white p-8 text-slate-600 shadow-sm">No experts available.</div>
-        )}
-      </div>
+    <section className="space-y-5">
+      <h2 className="font-display text-xl font-semibold tracking-tight text-brand-navy md:text-2xl">Experts</h2>
+
+      {status === 'loading' ? (
+        <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-8 text-sm text-slate-500 shadow-soft">Loading…</div>
+      ) : experts.length ? (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {experts.map((expert) => (
+            <div
+              key={expert.id}
+              className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white/95 shadow-soft transition hover:border-indigo-200/50 hover:shadow-lift"
+            >
+              <div className="h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500/80" />
+              <div className="p-5">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{expert.role}</div>
+              <h3 className="mt-2 font-display text-lg font-semibold text-brand-navy">{expert.name}</h3>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {(expert.expertise || []).length ? (
+                  expert.expertise.map((area) => (
+                    <span key={area} className="rounded-md bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                      {area}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-sm text-slate-500">—</span>
+                )}
+              </div>
+              <p className="mt-3 text-xs text-slate-400">{expert.region || 'National'}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-dashed border-slate-200 bg-white/80 p-8 text-center text-sm text-slate-500">
+          No experts listed.
+        </div>
+      )}
     </section>
   );
 }

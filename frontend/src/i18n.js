@@ -1,26 +1,12 @@
-const translations = {
-  en: {
-    dashboardSubtitle: 'Knowledge for SME support, onboarding, and local trade insights',
-    searchPlaceholder: 'Search knowledge, SOPs, lessons...',
-    goToRepo: 'Go to Repository',
-    repositoryTitle: 'Knowledge Repository',
-    lessonsTitle: 'Lessons Learned',
-    expertsTitle: 'Expert Profiles',
-    discussionsTitle: 'Internal Discussions',
-    createKnowledge: 'Create Knowledge Item',
-    addLesson: 'Submit Lesson Learned',
-  },
-  am: {
-    dashboardSubtitle: 'እውቀት ለንግድ ማስተናገድ እና የአካባቢ እውቀት',
-    searchPlaceholder: 'እውቀትን ፈልግ...',
-    goToRepo: 'ወደ ማእከል ይሂዱ',
-    repositoryTitle: 'የእውቀት ማእከል',
-    lessonsTitle: 'የተማሩ ትምህርቶች',
-    expertsTitle: 'የሙያ መገለጫ',
-    discussionsTitle: 'የውስጥ ንግግር',
-    createKnowledge: 'ዕውቀት እቃ ይፍጠሩ',
-    addLesson: 'የተማሩ ትምህርት ያስገቡ',
-  },
-};
+import en from './locales/en.json';
+import am from './locales/am.json';
 
-export default translations;
+const locales = { en, am };
+
+export function t(key, language = 'en') {
+  return locales[language]?.[key] || locales.en[key] || key;
+}
+
+export function getLocale(language) {
+  return locales[language] || locales.en;
+}
