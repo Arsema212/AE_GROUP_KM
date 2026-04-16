@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { t } from '../i18n';
+import AuthLayout from '../components/auth/AuthLayout';
 
 function getDashboardPath(role) {
   if (role === 'admin') return '/dashboard/admin';
@@ -27,53 +28,58 @@ function Login({ language }) {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-100 px-4 py-10">
-      <div className="w-full max-w-[400px] rounded-2xl border border-slate-200/80 bg-white p-8 shadow-lift">
-        <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 to-violet-700 text-xs font-bold text-white shadow-glow">
-            AE
-          </div>
-          <div>
-            <div className="font-display text-sm font-semibold text-brand-navy">AE Trade Group</div>
-            <div className="text-xs text-slate-500">KMS</div>
-          </div>
+    <AuthLayout>
+      <div className="mb-8 flex items-start justify-between gap-4">
+        <div>
+          <h2 className="font-display text-2xl font-semibold tracking-tight text-slate-900 lg:text-3xl">{t('signIn', language)}</h2>
         </div>
-        <h2 className="font-display text-lg font-semibold text-slate-900">{t('signIn', language)}</h2>
-
-        {error && <div className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-500/20"
-            required
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-500/20"
-            required
-          />
-          <button
-            type="submit"
-            className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 py-3 text-sm font-semibold text-white shadow-md shadow-indigo-500/25 transition hover:from-indigo-700 hover:to-violet-700"
-          >
-            Sign in
-          </button>
-        </form>
-
-        <div className="mt-6 text-center text-sm text-slate-500">
-          <Link to="/register" className="font-medium text-indigo-600 hover:text-indigo-800">
-            Register
-          </Link>
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-violet-700 text-xs font-bold text-white shadow-glow lg:hidden">
+          AE
         </div>
       </div>
-    </div>
+
+      {error && <div className="mb-6 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div>}
+
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div>
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-500">Email</label>
+          <input
+            type="email"
+            placeholder="you@company.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3.5 text-base outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-500/15"
+            required
+            autoComplete="email"
+          />
+        </div>
+        <div>
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-500">Password</label>
+          <input
+            type="password"
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3.5 text-base outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-500/15"
+            required
+            autoComplete="current-password"
+          />
+        </div>
+        <button
+          type="submit"
+          className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 py-3.5 text-base font-semibold text-white shadow-md shadow-indigo-500/25 transition hover:from-indigo-700 hover:to-violet-700"
+        >
+          Sign in
+        </button>
+      </form>
+
+      <p className="mt-8 text-center text-sm text-slate-600">
+        New to the platform?{' '}
+        <Link to="/register" className="font-semibold text-indigo-600 underline-offset-2 hover:text-indigo-800 hover:underline">
+          Create an account
+        </Link>
+      </p>
+    </AuthLayout>
   );
 }
 
