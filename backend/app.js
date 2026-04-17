@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
+const os = require('os');
 const authRoutes = require('./routes/auth');
 const knowledgeRoutes = require('./routes/knowledge');
 const lessonsRoutes = require('./routes/lessons');
@@ -7,10 +9,13 @@ const usersRoutes = require('./routes/users');
 const db = require('./db');
 
 const app = express();
+const uploadDir = process.env.VERCEL
+  ? path.join(os.tmpdir(), 'uploads')
+  : path.join(process.cwd(), 'uploads');
 
 app.use(cors());
 app.use(express.json());
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static(uploadDir));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/knowledge', knowledgeRoutes);
