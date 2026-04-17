@@ -1,8 +1,15 @@
 import axios from 'axios';
 
-const API_BASE =
-  import.meta.env.VITE_API_BASE ||
-  (import.meta.env.DEV ? 'http://localhost:4000/api' : '/api');
+function normalizeApiBase(raw) {
+  if (!raw) return null;
+  const trimmed = String(raw).trim().replace(/\s+/g, '');
+  if (!trimmed) return null;
+  if (trimmed.startsWith('/')) return '/api';
+  return trimmed.replace(/\/+$/, '').replace(/\/api$/, '') + '/api';
+}
+
+const API_BASE = normalizeApiBase(import.meta.env.VITE_API_BASE)
+  || (import.meta.env.DEV ? 'http://localhost:4000/api' : 'https://ae-group-km-api.vercel.app/api');
 
 const api = axios.create({
   baseURL: API_BASE,
