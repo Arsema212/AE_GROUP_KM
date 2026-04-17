@@ -16,13 +16,13 @@ function Register({ language }) {
     setError('');
     setSuccess('');
 
-    try {
-    //   await register({ name, email, password, role });
-    //   setSuccess('Registration complete. Please login.');
-    //   setTimeout(() => navigate('/login'), 1200);
-    // } catch (err) {
-    //   setError(err.response?.data?.error || 'Unable to register');
-    // }
+    
+      await register({ name, email, password, role });
+      setSuccess('Registration complete. Please login.');
+      setTimeout(() => navigate('/login'), 1200);
+    
+  
+    
   };
 
   return (
