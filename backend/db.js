@@ -1,6 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-const sqlite3 = require('sqlite3');
 const { open } = require('sqlite');
 const { db: dbConfig } = require('./config');
 
@@ -101,6 +100,12 @@ async function initSchema(db) {
 
 async function getDb() {
   if (!dbPromise) {
+    let sqlite3;
+    try {
+      sqlite3 = require('sqlite3');
+    } catch (err) {
+      throw new Error(`Failed to load sqlite3 runtime: ${err.message}`);
+    }
     const isVercel = process.env.VERCEL === '1' || process.env.VERCEL === 'true';
     const configuredPath = dbConfig.sqlitePath || './data/kms.sqlite';
     const runtimePath = isVercel && !process.env.SQLITE_DB_PATH ? '/tmp/kms.sqlite' : configuredPath;
