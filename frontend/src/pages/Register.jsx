@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { register } from '../services/auth';
+import { AuthSplitLayout } from '../components/auth/AuthSplitLayout';
+import { PasswordField } from '../components/auth/PasswordField';
 
 function Register({ language }) {
   const [name, setName] = useState('');
@@ -17,7 +19,7 @@ function Register({ language }) {
     setSuccess('');
     try {
       await register({ name, email, password, role });
-      setSuccess('Registration complete. Please login.');
+      setSuccess('Registration complete. Redirecting to sign in…');
       setTimeout(() => navigate('/login'), 1200);
     } catch (err) {
       setError(err.response?.data?.error || 'Unable to register');
@@ -25,57 +27,91 @@ function Register({ language }) {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-8">
-      <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-xl">
-        <h2 className="mb-4 text-2xl font-semibold text-slate-900">Create your account</h2>
-        <p className="mb-6 text-slate-600">Register now to contribute knowledge, submit lessons, and collaborate.</p>
+    <AuthSplitLayout eyebrow="Join" title="Create your account" formSide="right">
+      <p className="text-sm text-slate-600">Set up access to the knowledge workspace.</p>
 
-        {error && <div className="mb-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-        {success && <div className="mb-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{success}</div>}
+      {error && (
+        <div className="mt-6 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div>
+      )}
+      {success && (
+        <div className="mt-6 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          {success}
+        </div>
+      )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+        <div>
+          <label htmlFor="reg-name" className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500">
+            Full name
+          </label>
           <input
+            id="reg-name"
             type="text"
-            placeholder="Full name"
+            placeholder="Jane Doe"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+            autoComplete="name"
+            className="w-full rounded-2xl border border-slate-200 bg-white py-3.5 px-4 text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/25"
             required
           />
+        </div>
+        <div>
+          <label htmlFor="reg-email" className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500">
+            Email
+          </label>
           <input
+            id="reg-email"
             type="email"
-            placeholder="Email"
+            placeholder="you@company.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+            autoComplete="email"
+            className="w-full rounded-2xl border border-slate-200 bg-white py-3.5 px-4 text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/25"
             required
           />
-          <input
-            type="password"
-            placeholder="Password"
+        </div>
+        <div>
+          <label htmlFor="reg-password" className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500">
+            Password
+          </label>
+          <PasswordField
+            id="reg-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+            autoComplete="new-password"
             required
           />
+        </div>
+        <div>
+          <label htmlFor="reg-role" className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500">
+            Role
+          </label>
           <select
+            id="reg-role"
             value={role}
             onChange={(e) => setRole(e.target.value)}
-            className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+            className="w-full rounded-2xl border border-slate-200 bg-white py-3.5 px-4 text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/25"
           >
             <option value="staff">Staff</option>
             <option value="manager">Manager</option>
             <option value="admin">Admin</option>
           </select>
-          <button className="w-full rounded-2xl bg-indigo-600 px-4 py-3 text-white hover:bg-indigo-700 transition">Register</button>
-        </form>
-
-        <div className="mt-6 text-center text-sm text-slate-600">
-          Already have an account?{' '}
-          <Link to="/login" className="font-semibold text-indigo-600 hover:text-indigo-700">Login here</Link>
         </div>
-      </div>
-    </div>
+        <button
+          type="submit"
+          className="w-full rounded-2xl bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 py-3.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition hover:brightness-105 active:scale-[0.99]"
+        >
+          Create account
+        </button>
+      </form>
+
+      <p className="mt-8 text-center text-sm text-slate-600">
+        Already have an account?{' '}
+        <Link to="/login" className="font-semibold text-indigo-600 underline-offset-4 hover:text-indigo-800 hover:underline">
+          Sign in
+        </Link>
+      </p>
+    </AuthSplitLayout>
   );
 }
 

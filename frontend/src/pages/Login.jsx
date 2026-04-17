@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { t } from '../i18n';
+import { AuthSplitLayout } from '../components/auth/AuthSplitLayout';
+import { PasswordField } from '../components/auth/PasswordField';
 
 function getDashboardPath(role) {
   if (role === 'admin') return '/dashboard/admin';
@@ -28,39 +30,59 @@ function Login({ language }) {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-8">
-      <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-xl">
-        <h2 className="mb-4 text-2xl font-semibold text-slate-900">{t('dashboard', language)}</h2>
-        <p className="mb-6 text-slate-600">Enter your credentials to access the AE Trade Group KMS.</p>
+    <AuthSplitLayout
+      eyebrow="Sign in"
+      title={t('dashboard', language)}
+      formSide="right"
+    >
+      <p className="text-sm text-slate-600">Welcome back — use your AE Trade Group credentials.</p>
 
-        {error && <div className="mb-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+      {error && (
+        <div className="mt-6 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div>
+      )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+        <div>
+          <label htmlFor="login-email" className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500">
+            Email
+          </label>
           <input
+            id="login-email"
             type="email"
-            placeholder="Email"
+            placeholder="you@company.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+            autoComplete="email"
+            className="w-full rounded-2xl border border-slate-200 bg-white py-3.5 px-4 text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/25"
             required
           />
-          <input
-            type="password"
-            placeholder="Password"
+        </div>
+        <div>
+          <label htmlFor="login-password" className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500">
+            Password
+          </label>
+          <PasswordField
+            id="login-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
             required
           />
-          <button className="w-full rounded-2xl bg-indigo-600 px-4 py-3 text-white hover:bg-indigo-700 transition">Login</button>
-        </form>
-
-        <div className="mt-6 text-center text-sm text-slate-600">
-          New here?{' '}
-          <Link to="/register" className="font-semibold text-indigo-600 hover:text-indigo-700">Create an account</Link>
         </div>
-      </div>
-    </div>
+        <button
+          type="submit"
+          className="w-full rounded-2xl bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 py-3.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition hover:brightness-105 active:scale-[0.99]"
+        >
+          Sign in
+        </button>
+      </form>
+
+      <p className="mt-8 text-center text-sm text-slate-600">
+        New here?{' '}
+        <Link to="/register" className="font-semibold text-indigo-600 underline-offset-4 hover:text-indigo-800 hover:underline">
+          Create an account
+        </Link>
+      </p>
+    </AuthSplitLayout>
   );
 }
 
