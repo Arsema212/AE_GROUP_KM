@@ -15,17 +15,3 @@ export async function updateUserRole(userId, role, token) {
   );
   return response.data;
 }
-
-export async function updateUser(userId, payload, token) {
-  const response = await api.put(`/users/${userId}`, payload, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return response.data;
-}
-
-export async function deleteUser(userId, token) {
-  const response = await api.delete(`/users/${userId}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return response.data;
-}

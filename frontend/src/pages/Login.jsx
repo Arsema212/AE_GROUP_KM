@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { t } from '../i18n';
-import AuthLayout from '../components/auth/AuthLayout';
 
 function getDashboardPath(role) {
   if (role === 'admin') return '/dashboard/admin';
@@ -18,68 +17,49 @@ function Login({ language }) {
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const user = await login(email, password);
-      navigate(getDashboardPath(user?.role));
-    } catch (err) {
-      setError(err.response?.data?.error || 'Unable to login');
-    }
+    // e.preventDefault();
+    // try {
+    //   const user = await login(email, password);
+    //   navigate(getDashboardPath(user?.role));
+    // } catch (err) {
+    //   setError(err.response?.data?.error || 'Unable to login');
+    // }
   };
 
   return (
-    <AuthLayout>
-      <div className="mb-8 flex items-start justify-between gap-4">
-        <div>
-          <h2 className="font-display text-2xl font-semibold tracking-tight text-slate-900 lg:text-3xl">{t('signIn', language)}</h2>
-        </div>
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-violet-700 text-xs font-bold text-white shadow-glow lg:hidden">
-          AE
-        </div>
-      </div>
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-8">
+      <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-xl">
+        <h2 className="mb-4 text-2xl font-semibold text-slate-900">{t('dashboard', language)}</h2>
+        <p className="mb-6 text-slate-600">Enter your credentials to access the AE Trade Group KMS.</p>
 
-      {error && <div className="mb-6 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div>}
+        {error && <div className="mb-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <div>
-          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-500">Email</label>
+        <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="email"
-            placeholder="you@company.com"
+            placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3.5 text-base outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-500/15"
+            className="w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
             required
-            autoComplete="email"
           />
-        </div>
-        <div>
-          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-500">Password</label>
           <input
             type="password"
-            placeholder="••••••••"
+            placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3.5 text-base outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-500/15"
+            className="w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
             required
-            autoComplete="current-password"
           />
-        </div>
-        <button
-          type="submit"
-          className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 py-3.5 text-base font-semibold text-white shadow-md shadow-indigo-500/25 transition hover:from-indigo-700 hover:to-violet-700"
-        >
-          Sign in
-        </button>
-      </form>
+          <button className="w-full rounded-2xl bg-indigo-600 px-4 py-3 text-white hover:bg-indigo-700 transition">Login</button>
+        </form>
 
-      <p className="mt-8 text-center text-sm text-slate-600">
-        New to the platform?{' '}
-        <Link to="/register" className="font-semibold text-indigo-600 underline-offset-2 hover:text-indigo-800 hover:underline">
-          Create an account
-        </Link>
-      </p>
-    </AuthLayout>
+        <div className="mt-6 text-center text-sm text-slate-600">
+          New here?{' '}
+          <Link to="/register" className="font-semibold text-indigo-600 hover:text-indigo-700">Create an account</Link>
+        </div>
+      </div>
+    </div>
   );
 }
 

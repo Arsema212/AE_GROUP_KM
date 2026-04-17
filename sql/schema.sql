@@ -40,10 +40,7 @@ CREATE TABLE lessons_learned (
   tags TEXT[] DEFAULT ARRAY[]::TEXT[],
   language TEXT NOT NULL DEFAULT 'en',
   region TEXT DEFAULT 'national',
-  status TEXT NOT NULL CHECK (status IN ('pending', 'approved', 'denied')) DEFAULT 'pending',
   created_by UUID REFERENCES users(id) ON DELETE SET NULL,
-  reviewed_by UUID REFERENCES users(id) ON DELETE SET NULL,
-  reviewed_at TIMESTAMP WITH TIME ZONE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
@@ -65,41 +62,6 @@ CREATE TABLE ratings (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
   UNIQUE (target_type, target_id, user_id)
 );
-
-CREATE TABLE discussion_posts (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  author_id UUID REFERENCES users(id) ON DELETE SET NULL,
-  post_type TEXT NOT NULL CHECK (post_type IN ('article', 'meme')),
-  title TEXT,
-  body TEXT NOT NULL DEFAULT '',
-  image_path TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-);
-
-CREATE INDEX idx_discussion_posts_created ON discussion_posts(created_at DESC);
-
-CREATE TABLE discussion_comments (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  post_id UUID NOT NULL REFERENCES discussion_posts(id) ON DELETE CASCADE,
-  author_id UUID REFERENCES users(id) ON DELETE SET NULL,
-  parent_id UUID REFERENCES discussion_comments(id) ON DELETE CASCADE,
-  content TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-);
-
-CREATE INDEX idx_discussion_comments_post ON discussion_comments(post_id);
-
-CREATE TABLE discussion_reactions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  post_id UUID NOT NULL REFERENCES discussion_posts(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  reaction_type TEXT NOT NULL CHECK (reaction_type IN ('like', 'love', 'laugh', 'insight', 'celebrate')),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-  UNIQUE (post_id, user_id)
-);
-
-CREATE INDEX idx_discussion_reactions_post ON discussion_reactions(post_id);
 
 CREATE INDEX idx_knowledge_tags ON knowledge_items USING GIN (tags);
 CREATE INDEX idx_lessons_tags ON lessons_learned USING GIN (tags);

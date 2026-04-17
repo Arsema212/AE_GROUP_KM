@@ -32,34 +32,8 @@ async function updateUserRole(req, res, next) {
   }
 }
 
-async function updateUser(req, res, next) {
-  try {
-    const user = await userModel.updateUser(req.params.id, req.body);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    res.json(user);
-  } catch (err) {
-    next(err);
-  }
-}
-
-async function deleteUser(req, res, next) {
-  try {
-    const deleted = await userModel.deleteUser(req.params.id);
-    if (!deleted) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    res.json({ success: true, user: deleted });
-  } catch (err) {
-    next(err);
-  }
-}
-
 module.exports = {
   getExperts,
   getUsers,
   updateUserRole,
-  updateUser,
-  deleteUser,
 };

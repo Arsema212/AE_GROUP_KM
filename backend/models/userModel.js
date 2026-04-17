@@ -76,31 +76,6 @@ async function updateUserRole(id, role) {
   return result.rows[0];
 }
 
-async function updateUser(id, { name, email, role, expertise, region, language_preference }) {
-  const result = await db.query(
-    `UPDATE users SET
-      name = COALESCE($1, name),
-      email = COALESCE($2, email),
-      role = COALESCE($3, role),
-      expertise = COALESCE($4, expertise),
-      region = COALESCE($5, region),
-      language_preference = COALESCE($6, language_preference),
-      updated_at = now()
-     WHERE id = $7
-     RETURNING id, name, email, role, expertise, region, language_preference`,
-    [name || null, email || null, role || null, expertise || null, region || null, language_preference || null, id]
-  );
-  return result.rows[0];
-}
-
-async function deleteUser(id) {
-  const result = await db.query(
-    `DELETE FROM users WHERE id = $1 RETURNING id, name, email, role`,
-    [id]
-  );
-  return result.rows[0];
-}
-
 module.exports = {
   findByEmail,
   findById,
@@ -110,6 +85,4 @@ module.exports = {
   getExperts,
   listUsers,
   updateUserRole,
-  updateUser,
-  deleteUser,
 };

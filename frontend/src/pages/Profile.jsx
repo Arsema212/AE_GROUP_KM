@@ -42,11 +42,14 @@ function Profile({ language }) {
 
   return (
     <div className="space-y-6">
-      <h2 className="font-display text-xl font-semibold tracking-tight text-brand-navy md:text-2xl">{t('profile', language)}</h2>
+      <section className="rounded-3xl bg-white p-6 shadow-xl">
+        <h2 className="text-2xl font-semibold text-slate-900">{t('profile', language)}</h2>
+        <p className="mt-2 text-slate-600">Manage your user details and preferences.</p>
+      </section>
 
-      <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
-        <form onSubmit={handleProfileSubmit} className="rounded-2xl border border-slate-200/80 bg-white/95 p-6 shadow-soft">
-          <h3 className="mb-4 font-display text-lg font-semibold text-brand-navy">{t('updateProfile', language)}</h3>
+      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <form onSubmit={handleProfileSubmit} className="rounded-3xl bg-white p-6 shadow-lg">
+          <h3 className="mb-4 text-xl font-semibold text-slate-900">{t('updateProfile', language)}</h3>
           {message && <div className="mb-4 rounded-2xl bg-emerald-50 px-4 py-3 text-slate-700">{message}</div>}
           <div className="space-y-4">
             <div>
@@ -88,17 +91,12 @@ function Profile({ language }) {
                 <option value="am">Amharic</option>
               </select>
             </div>
-            <button
-              type="submit"
-              className="rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-500/25 transition hover:from-indigo-700 hover:to-violet-700"
-            >
-              {t('saveChanges', language)}
-            </button>
+            <button className="rounded-2xl bg-indigo-600 px-5 py-3 text-white hover:bg-indigo-700 transition">{t('saveChanges', language)}</button>
           </div>
         </form>
 
-        <form onSubmit={handlePasswordSubmit} className="rounded-2xl border border-slate-200/80 bg-white/95 p-6 shadow-soft">
-          <h3 className="mb-4 font-display text-lg font-semibold text-brand-navy">{t('changePassword', language)}</h3>
+        <form onSubmit={handlePasswordSubmit} className="rounded-3xl bg-white p-6 shadow-lg">
+          <h3 className="mb-4 text-xl font-semibold text-slate-900">{t('changePassword', language)}</h3>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-700">{t('currentPassword', language)}</label>
@@ -127,12 +125,7 @@ function Profile({ language }) {
                 className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
               />
             </div>
-            <button
-              type="submit"
-              className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
-            >
-              {t('saveChanges', language)}
-            </button>
+            <button className="rounded-2xl bg-slate-800 px-5 py-3 text-white hover:bg-slate-900 transition">{t('saveChanges', language)}</button>
           </div>
         </form>
       </div>

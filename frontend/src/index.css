@@ -7,11 +7,5 @@ html {
 }
 
 body {
-  @apply bg-slate-50 font-sans text-slate-900 antialiased;
-}
-
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+  @apply bg-slate-50 text-slate-900;
 }

@@ -1,47 +1,33 @@
-import { getApiOrigin } from '../services/api';
-
 function KnowledgeCard({ item }) {
-  const base = getApiOrigin();
-  const fileHref = item.file_path ? `${base}/${item.file_path.replace(/^\//, '')}` : null;
-
   return (
-    <article className="group overflow-hidden rounded-2xl border border-slate-200/80 bg-white/95 shadow-soft transition hover:border-indigo-200/60 hover:shadow-lift">
-      <div className="h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 opacity-90" />
-      <div className="p-5">
+    <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-lg transition-shadow">
       <div className="flex items-center justify-between gap-3">
-        <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-700">
+        <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-indigo-700">
           {item.type}
         </span>
-        <span className="text-[11px] font-medium text-slate-400">
-          {item.language?.toUpperCase()} · {item.region}
-        </span>
+        <span className="text-xs text-slate-500">{item.language.toUpperCase()} · {item.region}</span>
       </div>
-      <h3 className="mt-3 font-display text-lg font-semibold leading-snug tracking-tight text-brand-navy">
-        {item.title}
-      </h3>
-      <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-slate-600">{item.content}</p>
-      {(item.tags || []).length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {(item.tags || []).map((tag) => (
-            <span key={tag} className="rounded-md bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-600">
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
-      {fileHref && (
-        <div className="mt-4 border-t border-slate-100 pt-3">
+      <h3 className="mt-4 text-xl font-semibold text-slate-900">{item.title}</h3>
+      <p className="mt-3 text-slate-600 line-clamp-3">{item.content}</p>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {(item.tags || []).map((tag) => (
+          <span key={tag} className="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-600">
+            {tag}
+          </span>
+        ))}
+      </div>
+      {item.file_path && (
+        <div className="mt-4">
           <a
-            href={fileHref}
+            href={`http://localhost:4000/${item.file_path}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm font-medium text-indigo-600 transition hover:text-indigo-800"
+            className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
           >
-            Attachment
+            Download Attachment
           </a>
         </div>
       )}
-      </div>
     </article>
   );
 }

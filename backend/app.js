@@ -4,7 +4,6 @@ const authRoutes = require('./routes/auth');
 const knowledgeRoutes = require('./routes/knowledge');
 const lessonsRoutes = require('./routes/lessons');
 const usersRoutes = require('./routes/users');
-const discussionsRoutes = require('./routes/discussions');
 
 const app = express();
 
@@ -16,7 +15,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/knowledge', knowledgeRoutes);
 app.use('/api/lessons', lessonsRoutes);
 app.use('/api/users', usersRoutes);
-app.use('/api/discussions', discussionsRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint not found' });

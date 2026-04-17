@@ -37,8 +37,8 @@ function App() {
               <Route index element={<Dashboard language={language} role="staff" />} />
             </Route>
             <Route path="/repository" element={<Repository language={language} query={search} />} />
-            <Route path="/lessons" element={<LessonsLearned language={language} query={search} />} />
-            <Route path="/experts" element={<Experts />} />
+            <Route path="/lessons" element={<LessonsLearned language={language} />} />
+            <Route path="/experts" element={<Experts language={language} />} />
             <Route path="/discussions" element={<Discussions language={language} />} />
             <Route path="/profile" element={<Profile language={language} />} />
             <Route path="/users" element={<ProtectedRoute allowedRoles={['admin']} />}>
