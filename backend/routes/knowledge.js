@@ -1,6 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
+const crypto = require('crypto');
 const db = require('../db');
 const { authenticate, authorize } = require('../middleware/auth');
 
@@ -29,6 +30,24 @@ function parseArrayField(field) {
   return [];
 }
 
+function parseTags(value) {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function mapKnowledge(row) {
+  if (!row) return null;
+  return {
+    ...row,
+    tags: parseTags(row.tags),
+  };
+}
+
 router.get('/', async (req, res, next) => {
   try {
     const { q, type, language, region, tag } = req.query;
@@ -37,35 +56,32 @@ router.get('/', async (req, res, next) => {
     let idx = 1;
 
     if (q) {
-      filters.push(`(title ILIKE $${idx} OR content ILIKE $${idx})`);
-      values.push(`%${q}%`);
-      idx += 1;
+      filters.push(`(LOWER(title) LIKE ? OR LOWER(content) LIKE ?)`);
+      const like = `%${String(q).toLowerCase()}%`;
+      values.push(like, like);
+      idx += 2;
     }
     if (type) {
-      filters.push(`type = $${idx}`);
+      filters.push(`type = ?`);
       values.push(type);
       idx += 1;
     }
     if (language) {
-      filters.push(`language = $${idx}`);
+      filters.push(`language = ?`);
       values.push(language);
       idx += 1;
     }
     if (region) {
-      filters.push(`region = $${idx}`);
+      filters.push(`region = ?`);
       values.push(region);
-      idx += 1;
-    }
-    if (tag) {
-      filters.push(`$${idx} = ANY(tags)`);
-      values.push(tag);
       idx += 1;
     }
 
     const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
-    const query = `SELECT * FROM knowledge_items ${whereClause} ORDER BY updated_at DESC NULLS LAST, created_at DESC LIMIT 200`;
-    const result = await db.query(query, values);
-    res.json(result.rows);
+    const query = `SELECT * FROM knowledge_items ${whereClause} ORDER BY COALESCE(updated_at, created_at) DESC, created_at DESC LIMIT 200`;
+    const rows = await db.all(query, values);
+    const mapped = rows.map(mapKnowledge);
+    res.json(tag ? mapped.filter((row) => row.tags.includes(tag)) : mapped);
   } catch (err) {
     next(err);
   }
@@ -73,9 +89,9 @@ router.get('/', async (req, res, next) => {
 
 router.get('/:id', async (req, res, next) => {
   try {
-    const result = await db.query('SELECT * FROM knowledge_items WHERE id = $1', [req.params.id]);
-    if (!result.rows[0]) return res.status(404).json({ error: 'Not found' });
-    res.json(result.rows[0]);
+    const row = await db.get('SELECT * FROM knowledge_items WHERE id = ?', [req.params.id]);
+    if (!row) return res.status(404).json({ error: 'Not found' });
+    res.json(mapKnowledge(row));
   } catch (err) {
     next(err);
   }
@@ -86,13 +102,14 @@ router.post('/', authenticate, authorize(['admin', 'manager', 'staff']), upload.
     const { title, content, type, tags, language, region, status = 'draft' } = req.body;
     const filePath = req.file ? req.file.path : null;
     const parsedTags = parseArrayField(tags);
-    const result = await db.query(
-      `INSERT INTO knowledge_items (title, content, type, tags, language, region, status, created_by, file_path)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-       RETURNING *`,
-      [title, content, type, parsedTags, language, region, status, req.user.id, filePath]
+    const id = crypto.randomUUID();
+    await db.run(
+      `INSERT INTO knowledge_items (id, title, content, type, tags, language, region, status, created_by, file_path, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+      [id, title, content, type, JSON.stringify(parsedTags), language, region, status, req.user.id, filePath]
     );
-    res.status(201).json(result.rows[0]);
+    const row = await db.get('SELECT * FROM knowledge_items WHERE id = ?', [id]);
+    res.status(201).json(mapKnowledge(row));
   } catch (err) {
     next(err);
   }
@@ -102,13 +119,26 @@ router.put('/:id', authenticate, authorize(['admin', 'manager', 'staff']), async
   try {
     const { title, content, type, tags, language, region, status } = req.body;
     const parsedTags = parseArrayField(tags);
-    const result = await db.query(
-      `UPDATE knowledge_items SET title = $1, content = $2, type = $3, tags = $4, language = $5, region = $6, status = $7, updated_at = now()
-       WHERE id = $8 RETURNING *`,
-      [title, content, type, parsedTags, language, region, status, req.params.id]
+    const existing = await db.get('SELECT * FROM knowledge_items WHERE id = ?', [req.params.id]);
+    if (!existing) return res.status(404).json({ error: 'Not found' });
+
+    await db.run(
+      `UPDATE knowledge_items
+       SET title = ?, content = ?, type = ?, tags = ?, language = ?, region = ?, status = ?, updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      [
+        title ?? existing.title,
+        content ?? existing.content,
+        type ?? existing.type,
+        JSON.stringify(parsedTags),
+        language ?? existing.language,
+        region ?? existing.region,
+        status ?? existing.status,
+        req.params.id,
+      ]
     );
-    if (!result.rows[0]) return res.status(404).json({ error: 'Not found' });
-    res.json(result.rows[0]);
+    const row = await db.get('SELECT * FROM knowledge_items WHERE id = ?', [req.params.id]);
+    res.json(mapKnowledge(row));
   } catch (err) {
     next(err);
   }
