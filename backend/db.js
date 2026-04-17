@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { open } = require('sqlite');
+const bcrypt = require('bcryptjs');
 const { db: dbConfig } = require('./config');
 
 let dbPromise = null;
@@ -96,6 +97,43 @@ async function initSchema(db) {
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
   `);
+
+  // Seed demo users for quick role-based login testing.
+  const seeds = [
+    {
+      id: '00000000-0000-0000-0000-000000000001',
+      name: 'Demo Admin',
+      email: 'admin@aetrade.demo',
+      password: 'Admin@123',
+      role: 'admin',
+    },
+    {
+      id: '00000000-0000-0000-0000-000000000002',
+      name: 'Demo Manager',
+      email: 'manager@aetrade.demo',
+      password: 'Manager@123',
+      role: 'manager',
+    },
+    {
+      id: '00000000-0000-0000-0000-000000000003',
+      name: 'Demo Staff',
+      email: 'staff@aetrade.demo',
+      password: 'Staff@123',
+      role: 'staff',
+    },
+  ];
+
+  for (const user of seeds) {
+    const existing = await db.get('SELECT id FROM users WHERE email = ?', [user.email]);
+    if (!existing) {
+      const passwordHash = bcrypt.hashSync(user.password, 10);
+      await db.run(
+        `INSERT INTO users (id, name, email, password_hash, role, expertise, region, language_preference, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+        [user.id, user.name, user.email, passwordHash, user.role, '[]', null, 'en']
+      );
+    }
+  }
 }
 
 async function getDb() {
