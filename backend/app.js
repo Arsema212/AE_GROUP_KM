@@ -29,6 +29,25 @@ app.get('/api/health', async (req, res) => {
     res.status(500).json({ status: 'error', error: err.message });
   }
 });
+app.get('/health', async (req, res) => {
+  try {
+    const row = await db.get('SELECT 1 as ok');
+    res.json({
+      status: 'ok',
+      db: row?.ok === 1 ? 'connected' : 'unknown',
+      sqlitePath: db.getResolvedPath(),
+      vercel: process.env.VERCEL ? true : false,
+    });
+  } catch (err) {
+    res.status(500).json({ status: 'error', error: err.message });
+  }
+});
+app.get('/', (req, res) => {
+  res.json({
+    service: 'AE Trade Group KMS Backend',
+    health: '/api/health',
+  });
+});
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint not found' });
