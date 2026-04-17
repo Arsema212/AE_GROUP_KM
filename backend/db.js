@@ -14,6 +14,40 @@ function ensureDir(filePath) {
   }
 }
 
+async function migrateKnowledgeItemsRejected(db) {
+  const row = await db.get(`SELECT sql FROM sqlite_master WHERE type='table' AND name='knowledge_items'`);
+  if (!row?.sql || row.sql.includes("'rejected'")) return;
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS _knowledge_items_mig (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      type TEXT NOT NULL CHECK (type IN ('document','faq','sop','training','insight')),
+      tags TEXT NOT NULL DEFAULT '[]',
+      language TEXT NOT NULL DEFAULT 'en',
+      region TEXT DEFAULT 'national',
+      status TEXT NOT NULL CHECK (status IN ('draft','published','review','rejected')) DEFAULT 'draft',
+      version INTEGER NOT NULL DEFAULT 1,
+      file_path TEXT,
+      created_by TEXT,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+    );
+    INSERT INTO _knowledge_items_mig SELECT * FROM knowledge_items;
+    DROP TABLE knowledge_items;
+    ALTER TABLE _knowledge_items_mig RENAME TO knowledge_items;
+  `);
+}
+
+async function migrateLessonsStatus(db) {
+  const cols = await db.all(`PRAGMA table_info(lessons_learned)`);
+  if (cols.some((c) => c.name === 'status')) return;
+  await db.run(
+    `ALTER TABLE lessons_learned ADD COLUMN status TEXT NOT NULL DEFAULT 'published'`
+  );
+}
+
 async function initSchema(db) {
   await db.exec(`
     PRAGMA foreign_keys = ON;
@@ -39,7 +73,7 @@ async function initSchema(db) {
       tags TEXT NOT NULL DEFAULT '[]',
       language TEXT NOT NULL DEFAULT 'en',
       region TEXT DEFAULT 'national',
-      status TEXT NOT NULL CHECK (status IN ('draft','published','review')) DEFAULT 'draft',
+      status TEXT NOT NULL CHECK (status IN ('draft','published','review','rejected')) DEFAULT 'draft',
       version INTEGER NOT NULL DEFAULT 1,
       file_path TEXT,
       created_by TEXT,
@@ -57,6 +91,7 @@ async function initSchema(db) {
       tags TEXT NOT NULL DEFAULT '[]',
       language TEXT NOT NULL DEFAULT 'en',
       region TEXT DEFAULT 'national',
+      status TEXT NOT NULL CHECK (status IN ('draft','review','published','rejected')) DEFAULT 'published',
       created_by TEXT,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
@@ -97,6 +132,9 @@ async function initSchema(db) {
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
   `);
+
+  await migrateKnowledgeItemsRejected(db);
+  await migrateLessonsStatus(db);
 
   // Seed demo users for quick role-based login testing.
   const seeds = [

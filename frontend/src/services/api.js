@@ -11,6 +11,11 @@ function normalizeApiBase(raw) {
 const API_BASE = normalizeApiBase(import.meta.env.VITE_API_BASE)
   || (import.meta.env.DEV ? 'http://localhost:4000/api' : 'https://ae-group-km-api.vercel.app/api');
 
+/** Origin for static files (e.g. /uploads/...) — same host as API without /api */
+export function getApiOrigin() {
+  return String(API_BASE).replace(/\/api\/?$/, '') || '';
+}
+
 const api = axios.create({
   baseURL: API_BASE,
   headers: { 'Content-Type': 'application/json' },

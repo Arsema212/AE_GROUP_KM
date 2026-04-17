@@ -6,6 +6,7 @@ const authRoutes = require('./routes/auth');
 const knowledgeRoutes = require('./routes/knowledge');
 const lessonsRoutes = require('./routes/lessons');
 const usersRoutes = require('./routes/users');
+const discussionsRoutes = require('./routes/discussions');
 const db = require('./db');
 
 const app = express();
@@ -21,6 +22,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/knowledge', knowledgeRoutes);
 app.use('/api/lessons', lessonsRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/discussions', discussionsRoutes);
 app.get('/api/health', async (req, res) => {
   try {
     const row = await db.get('SELECT 1 as ok');

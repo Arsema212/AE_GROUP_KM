@@ -23,6 +23,16 @@ export async function submitLesson(payload) {
   return response.data;
 }
 
+export async function reviewKnowledge(id, action) {
+  const { data } = await api.put(`/knowledge/${id}/review`, { action });
+  return data;
+}
+
+export async function reviewLesson(id, action) {
+  const { data } = await api.put(`/lessons/${id}/review`, { action });
+  return data;
+}
+
 export async function fetchExperts(params = {}) {
   const response = await api.get('/users/experts', { params });
   return response.data;

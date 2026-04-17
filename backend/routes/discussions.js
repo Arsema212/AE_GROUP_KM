@@ -3,6 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const crypto = require('crypto');
 const db = require('../db');
 const { authenticate, authorize } = require('../middleware/auth');
 
@@ -41,24 +42,25 @@ const REACTIONS = new Set(['like', 'love', 'laugh', 'insight', 'celebrate']);
 
 async function loadReactionData(postIds, userId) {
   if (!postIds.length) return { counts: {}, mine: {} };
-  const r = await db.query(
-    `SELECT post_id, reaction_type, COUNT(*)::int AS cnt
-     FROM discussion_reactions WHERE post_id = ANY($1::uuid[])
+  const placeholders = postIds.map(() => '?').join(',');
+  const r = await db.all(
+    `SELECT post_id, reaction_type, COUNT(*) AS cnt
+     FROM discussion_reactions WHERE post_id IN (${placeholders})
      GROUP BY post_id, reaction_type`,
-    [postIds]
+    postIds
   );
   const counts = {};
-  for (const row of r.rows) {
+  for (const row of r) {
     if (!counts[row.post_id]) counts[row.post_id] = {};
-    counts[row.post_id][row.reaction_type] = row.cnt;
+    counts[row.post_id][row.reaction_type] = Number(row.cnt) || 0;
   }
   let mine = {};
   if (userId) {
-    const m = await db.query(
-      'SELECT post_id, reaction_type FROM discussion_reactions WHERE post_id = ANY($1::uuid[]) AND user_id = $2',
-      [postIds, userId]
+    const m = await db.all(
+      `SELECT post_id, reaction_type FROM discussion_reactions WHERE post_id IN (${placeholders}) AND user_id = ?`,
+      [...postIds, userId]
     );
-    mine = Object.fromEntries(m.rows.map((x) => [x.post_id, x.reaction_type]));
+    mine = Object.fromEntries(m.map((x) => [x.post_id, x.reaction_type]));
   }
   return { counts, mine };
 }
@@ -100,22 +102,20 @@ router.get('/posts', async (req, res, next) => {
       }
     }
 
-    const result = await db.query(
+    const result = await db.all(
       `SELECT p.id, p.post_type, p.title, p.body, p.image_path, p.created_at, p.updated_at,
               p.author_id, u.name AS author_name, u.email AS author_email,
-              (SELECT COUNT(*)::int FROM discussion_comments c WHERE c.post_id = p.id) AS comment_count
+              (SELECT COUNT(*) FROM discussion_comments c WHERE c.post_id = p.id) AS comment_count
        FROM discussion_posts p
        LEFT JOIN users u ON u.id = p.author_id
        ORDER BY p.created_at DESC
-       LIMIT $1 OFFSET $2`,
+       LIMIT ? OFFSET ?`,
       [limit, offset]
     );
-    const ids = result.rows.map((r) => r.id);
+    const ids = result.map((r) => r.id);
     const { counts, mine } = await loadReactionData(ids, userId);
-    const posts = result.rows.map((row) =>
-      mapPost(row, counts, mine[row.id])
-    );
-    res.json({ posts, has_more: result.rows.length === limit });
+    const posts = result.map((row) => mapPost(row, counts, mine[row.id]));
+    res.json({ posts, has_more: result.length === limit });
   } catch (err) {
     next(err);
   }
@@ -136,32 +136,32 @@ router.get('/posts/:id', async (req, res, next) => {
       }
     }
 
-    const postResult = await db.query(
+    const postResult = await db.get(
       `SELECT p.id, p.post_type, p.title, p.body, p.image_path, p.created_at, p.updated_at,
               p.author_id, u.name AS author_name, u.email AS author_email,
-              (SELECT COUNT(*)::int FROM discussion_comments c WHERE c.post_id = p.id) AS comment_count
+              (SELECT COUNT(*) FROM discussion_comments c WHERE c.post_id = p.id) AS comment_count
        FROM discussion_posts p
        LEFT JOIN users u ON u.id = p.author_id
-       WHERE p.id = $1`,
+       WHERE p.id = ?`,
       [req.params.id]
     );
-    if (!postResult.rows[0]) return res.status(404).json({ error: 'Post not found' });
-    const row = postResult.rows[0];
+    if (!postResult) return res.status(404).json({ error: 'Post not found' });
+    const row = postResult;
     const { counts, mine } = await loadReactionData([row.id], userId);
 
-    const commentsResult = await db.query(
+    const commentsResult = await db.all(
       `SELECT c.id, c.post_id, c.parent_id, c.content, c.created_at,
               c.author_id, u.name AS author_name, u.email AS author_email
        FROM discussion_comments c
        LEFT JOIN users u ON u.id = c.author_id
-       WHERE c.post_id = $1
+       WHERE c.post_id = ?
        ORDER BY c.created_at ASC`,
       [req.params.id]
     );
 
     res.json({
       post: mapPost(row, counts, mine[row.id]),
-      comments: commentsResult.rows.map((c) => ({
+      comments: commentsResult.map((c) => ({
         id: c.id,
         parent_id: c.parent_id,
         content: c.content,
@@ -197,15 +197,14 @@ router.post(
         }
       }
 
-      const result = await db.query(
-        `INSERT INTO discussion_posts (author_id, post_type, title, body, image_path)
-         VALUES ($1, $2, $3, $4, $5)
-         RETURNING id, post_type, title, body, image_path, created_at, updated_at, author_id`,
-        [req.user.id, type, String(title).trim() || null, String(body).trim(), imagePath]
+      const id = crypto.randomUUID();
+      await db.run(
+        `INSERT INTO discussion_posts (id, author_id, post_type, title, body, image_path, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+        [id, req.user.id, type, String(title).trim() || null, String(body).trim(), imagePath]
       );
-      const p = result.rows[0];
-      const u = await db.query('SELECT name, email FROM users WHERE id = $1', [req.user.id]);
-      const author = u.rows[0];
+      const p = await db.get('SELECT * FROM discussion_posts WHERE id = ?', [id]);
+      const u = await db.get('SELECT name, email FROM users WHERE id = ?', [req.user.id]);
       res.status(201).json({
         id: p.id,
         post_type: p.post_type,
@@ -214,7 +213,7 @@ router.post(
         image_path: p.image_path,
         image_url: p.image_path ? `/uploads/${path.basename(p.image_path)}` : null,
         created_at: p.created_at,
-        author: { id: req.user.id, name: author?.name, email: author?.email },
+        author: { id: req.user.id, name: u?.name, email: u?.email },
         comment_count: 0,
         reaction_counts: {},
         my_reaction: null,
@@ -227,14 +226,14 @@ router.post(
 
 router.delete('/posts/:id', authenticate, authorize(['admin', 'manager', 'staff']), async (req, res, next) => {
   try {
-    const existing = await db.query('SELECT author_id FROM discussion_posts WHERE id = $1', [req.params.id]);
-    if (!existing.rows[0]) return res.status(404).json({ error: 'Post not found' });
-    const isOwner = existing.rows[0].author_id === req.user.id;
+    const existing = await db.get('SELECT author_id FROM discussion_posts WHERE id = ?', [req.params.id]);
+    if (!existing) return res.status(404).json({ error: 'Post not found' });
+    const isOwner = existing.author_id === req.user.id;
     const isAdmin = req.user.role === 'admin';
     if (!isOwner && !isAdmin) {
       return res.status(403).json({ error: 'You can only delete your own posts' });
     }
-    await db.query('DELETE FROM discussion_posts WHERE id = $1', [req.params.id]);
+    await db.run('DELETE FROM discussion_posts WHERE id = ?', [req.params.id]);
     res.json({ success: true });
   } catch (err) {
     next(err);
@@ -247,26 +246,26 @@ router.post('/posts/:id/comments', authenticate, authorize(['admin', 'manager', 
     if (!content || !String(content).trim()) {
       return res.status(400).json({ error: 'Comment cannot be empty' });
     }
-    const postCheck = await db.query('SELECT id FROM discussion_posts WHERE id = $1', [req.params.id]);
-    if (!postCheck.rows[0]) return res.status(404).json({ error: 'Post not found' });
+    const postCheck = await db.get('SELECT id FROM discussion_posts WHERE id = ?', [req.params.id]);
+    if (!postCheck) return res.status(404).json({ error: 'Post not found' });
     if (parent_id) {
-      const parentCheck = await db.query(
-        'SELECT id FROM discussion_comments WHERE id = $1 AND post_id = $2',
+      const parentCheck = await db.get(
+        'SELECT id FROM discussion_comments WHERE id = ? AND post_id = ?',
         [parent_id, req.params.id]
       );
-      if (!parentCheck.rows[0]) return res.status(400).json({ error: 'Invalid parent comment' });
+      if (!parentCheck) return res.status(400).json({ error: 'Invalid parent comment' });
     }
-    const result = await db.query(
-      `INSERT INTO discussion_comments (post_id, author_id, parent_id, content)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, post_id, parent_id, content, created_at`,
-      [req.params.id, req.user.id, parent_id || null, String(content).trim()]
+    const commentId = crypto.randomUUID();
+    await db.run(
+      `INSERT INTO discussion_comments (id, post_id, author_id, parent_id, content, created_at)
+       VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      [commentId, req.params.id, req.user.id, parent_id || null, String(content).trim()]
     );
-    const u = await db.query('SELECT name, email FROM users WHERE id = $1', [req.user.id]);
-    const author = u.rows[0];
+    const row = await db.get('SELECT * FROM discussion_comments WHERE id = ?', [commentId]);
+    const u = await db.get('SELECT name, email FROM users WHERE id = ?', [req.user.id]);
     res.status(201).json({
-      ...result.rows[0],
-      author: { id: req.user.id, name: author?.name, email: author?.email },
+      ...row,
+      author: { id: req.user.id, name: u?.name, email: u?.email },
     });
   } catch (err) {
     next(err);
@@ -275,17 +274,14 @@ router.post('/posts/:id/comments', authenticate, authorize(['admin', 'manager', 
 
 router.delete('/comments/:id', authenticate, authorize(['admin', 'manager', 'staff']), async (req, res, next) => {
   try {
-    const row = await db.query(
-      'SELECT author_id FROM discussion_comments WHERE id = $1',
-      [req.params.id]
-    );
-    if (!row.rows[0]) return res.status(404).json({ error: 'Comment not found' });
-    const isOwner = row.rows[0].author_id === req.user.id;
+    const row = await db.get('SELECT author_id FROM discussion_comments WHERE id = ?', [req.params.id]);
+    if (!row) return res.status(404).json({ error: 'Comment not found' });
+    const isOwner = row.author_id === req.user.id;
     const isAdmin = req.user.role === 'admin';
     if (!isOwner && !isAdmin) {
       return res.status(403).json({ error: 'You can only delete your own comments' });
     }
-    await db.query('DELETE FROM discussion_comments WHERE id = $1', [req.params.id]);
+    await db.run('DELETE FROM discussion_comments WHERE id = ?', [req.params.id]);
     res.json({ success: true });
   } catch (err) {
     next(err);
@@ -298,24 +294,26 @@ router.post('/posts/:id/reactions', authenticate, authorize(['admin', 'manager',
     if (!REACTIONS.has(reaction_type)) {
       return res.status(400).json({ error: 'Invalid reaction' });
     }
-    const postCheck = await db.query('SELECT id FROM discussion_posts WHERE id = $1', [req.params.id]);
-    if (!postCheck.rows[0]) return res.status(404).json({ error: 'Post not found' });
+    const postCheck = await db.get('SELECT id FROM discussion_posts WHERE id = ?', [req.params.id]);
+    if (!postCheck) return res.status(404).json({ error: 'Post not found' });
 
-    await db.query(
-      `INSERT INTO discussion_reactions (post_id, user_id, reaction_type)
-       VALUES ($1, $2, $3)
-       ON CONFLICT (post_id, user_id)
-       DO UPDATE SET reaction_type = EXCLUDED.reaction_type, created_at = now()`,
-      [req.params.id, req.user.id, reaction_type]
+    const rid = crypto.randomUUID();
+    await db.run(
+      `INSERT INTO discussion_reactions (id, post_id, user_id, reaction_type, created_at)
+       VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+       ON CONFLICT(post_id, user_id) DO UPDATE SET
+         reaction_type = excluded.reaction_type,
+         created_at = CURRENT_TIMESTAMP`,
+      [rid, req.params.id, req.user.id, reaction_type]
     );
 
-    const agg = await db.query(
-      `SELECT reaction_type, COUNT(*)::int AS cnt
-       FROM discussion_reactions WHERE post_id = $1
+    const agg = await db.all(
+      `SELECT reaction_type, COUNT(*) AS cnt
+       FROM discussion_reactions WHERE post_id = ?
        GROUP BY reaction_type`,
       [req.params.id]
     );
-    const reaction_counts = Object.fromEntries(agg.rows.map((x) => [x.reaction_type, x.cnt]));
+    const reaction_counts = Object.fromEntries(agg.map((x) => [x.reaction_type, Number(x.cnt) || 0]));
     res.json({ my_reaction: reaction_type, reaction_counts });
   } catch (err) {
     next(err);
@@ -324,17 +322,17 @@ router.post('/posts/:id/reactions', authenticate, authorize(['admin', 'manager',
 
 router.delete('/posts/:id/reactions', authenticate, authorize(['admin', 'manager', 'staff']), async (req, res, next) => {
   try {
-    await db.query('DELETE FROM discussion_reactions WHERE post_id = $1 AND user_id = $2', [
+    await db.run('DELETE FROM discussion_reactions WHERE post_id = ? AND user_id = ?', [
       req.params.id,
       req.user.id,
     ]);
-    const agg = await db.query(
-      `SELECT reaction_type, COUNT(*)::int AS cnt
-       FROM discussion_reactions WHERE post_id = $1
+    const agg = await db.all(
+      `SELECT reaction_type, COUNT(*) AS cnt
+       FROM discussion_reactions WHERE post_id = ?
        GROUP BY reaction_type`,
       [req.params.id]
     );
-    const reaction_counts = Object.fromEntries(agg.rows.map((x) => [x.reaction_type, x.cnt]));
+    const reaction_counts = Object.fromEntries(agg.map((x) => [x.reaction_type, Number(x.cnt) || 0]));
     res.json({ my_reaction: null, reaction_counts });
   } catch (err) {
     next(err);
