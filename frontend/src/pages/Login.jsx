@@ -17,13 +17,14 @@ function Login({ language }) {
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
-    // e.preventDefault();
-    // try {
-    //   const user = await login(email, password);
-    //   navigate(getDashboardPath(user?.role));
-    // } catch (err) {
-    //   setError(err.response?.data?.error || 'Unable to login');
-    // }
+    e.preventDefault();
+    setError('');
+    try {
+      const user = await login(email, password);
+      navigate(getDashboardPath(user?.role));
+    } catch (err) {
+      setError(err.response?.data?.error || 'Unable to login');
+    }
   };
 
   return (
